@@ -2,3 +2,4 @@ node_modules
 *.log
 .vscode
 machine-profiles.json
+package-lock.json

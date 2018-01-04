@@ -297,7 +297,7 @@ class Settings extends React.Component {
                         A <Label>*</Label> <Label>/</Label>
                         </p>,"Jog using Numpad")}} />
                         
-                        <ToggleField {... { object: this.props.settings, field: 'toolUseGamepad', setAttrs: setSettingsAttrs, description: 'Use Gamepad',info: Info(<p className="help-block">Gamepad for jogging. Use analog left stick to move on Jog tab.</p>) }} />
+                        <ToggleField {... { object: this.props.settings, field: 'toolUseGamepad', setAttrs: setSettingsAttrs, description: 'Use Gamepad',info: Info(<p className="help-block">Gamepad for jogging. Use analog left stick (XY) or right stick (Z) to move on Jog tab.</p>) }} />
                         <ToggleField {... { object: this.props.settings, field: 'toolCreateEmptyOps', setAttrs: setSettingsAttrs, description: 'Create Empty Operations' }} />
                         
                         <QuadrantField {... { object: this.props.settings, field: 'toolImagePosition', setAttrs: setSettingsAttrs, description: 'Raster Image Position' }} />
@@ -308,14 +308,14 @@ class Settings extends React.Component {
 
                     <Panel collapsible header="Camera" bsStyle="info" eventKey="6">
                         <table width="100%"><tbody><tr>
-                            <td width="45%"><VideoDeviceField {...{ object: this.props.settings, field: 'toolVideoDevice', setAttrs: setSettingsAttrs, description: 'Video Device' }} /></td>
+                            <td width="45%"><VideoDeviceField {...{ object: this.props.settings, field: 'toolVideoDevice', setAttrs: setSettingsAttrs, description: 'Video Device', disabled: !!this.props.settings['toolWebcamUrl']}} /></td>
                             <td width="45%"><VideoResolutionField {...{ object: this.props.settings, field: 'toolVideoResolution', setAttrs: setSettingsAttrs, deviceId: this.props.settings['toolVideoDevice'] }} /></td>
 
                         </tr></tbody></table>
 
-                        <VideoPort height={240} enabled={this.props.settings['toolVideoDevice'] !== null} />
+                        <VideoPort height={240} enabled={(this.props.settings['toolVideoDevice'] !== null) || (this.props.settings['toolWebcamUrl'])} />
 
-                        <TextField   {... { object: this.props.settings, field: 'toolWebcamUrl', setAttrs: setSettingsAttrs, description: 'Webcam Url' }} />
+                        <TextField   {... { object: this.props.settings, field: 'toolWebcamUrl', setAttrs: setSettingsAttrs, description: 'Webcam Url' }} disabled={this.props.settings['toolVideoDevice'] !== null} />
                         <hr/>
                         <ToggleField  {... { object: this.props.settings, field: 'toolVideoOMR', setAttrs: setSettingsAttrs, description: 'Activate OMR', info: Info(<p className="help-block">
                         Enabling this, ARUCO markers will be recognized by floating camera port, allowing stock alignment. <Label bsStyle="warning">Experimental!</Label>
@@ -379,8 +379,13 @@ const mapDispatchToProps = (dispatch) => {
             dispatch(setSettingsAttrs(attrs, 'settings'))
         },
         handleDownload: (file, settings, action) => {
-            FileStorage.save(file, stringify(settings), "application/json",".json")
-            dispatch(action(settings));
+            try{
+                FileStorage.save(file, stringify(settings), "application/json",".json")
+                dispatch(action(settings));
+            } catch(e) {
+                FileStorage.save(file, JSON.stringify(settings), "application/json",".json")
+                dispatch(action(settings));
+            }
         },
         handleUpload: (file, action, onlyKeys) => {
             FileStorage.load(file, (file, result) => {
@@ -390,7 +395,7 @@ const mapDispatchToProps = (dispatch) => {
 
         handleStore: (name, settings, action) => {
             try {
-                LocalStorage.save(name, stringify(settings), "application/json")
+                LocalStorage.save(name, JSON.stringify(settings), "application/json")
             } catch (e) {
                 console.error(e);
                 alert(e)
