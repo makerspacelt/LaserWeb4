@@ -81,8 +81,8 @@ export const SETTINGS_INITIALSTATE = {
     machineAEnabled: false,
 
     machineBlowerEnabled: false,
-    machineBlowerGcodeOn: '',
-    machineBlowerGcodeOff: '',
+    machineBlowerGcodeOn: 'M7	; coolant on',
+    machineBlowerGcodeOff: 'M9	; coolant off',
 
     pxPerInch: 25.4,
     forcePxPerInch: false,
@@ -116,8 +116,8 @@ export const SETTINGS_INITIALSTATE = {
     toolTestSValue: 1,
     toolTestDuration: 0,
 
-    gcodeStart: "%/r/nG21         ; Set units to mm\r\nG90         ; Absolute positioning\r\nM68 E0 Q80\r\nM4 S1000\r\nG61\r\n",
-    gcodeEnd: "M5          ; Switch tool offEnd\r\n%/r/n",
+    gcodeStart: "%\r\nG21         ; Set units to mm\r\nG90         ; Absolute positioning\r\nG61\r\nM4 S1000\r\nM68 E0 Q80\r\n",
+    gcodeEnd: "M5          ; Switch tool offEnd\r\n%",
     gcodeHoming: "",
     gcodeToolOn: "",
     gcodeToolOff: "",
