@@ -25,6 +25,9 @@ import { bindKeys, unbindKeys } from './keyboard'
 import Gamepad from 'gamepad.js';
 import { OmrJog } from './omr';
 
+import { parseGcode } from '../lib/tmpParseGcode';
+import chunk from 'chunk'
+
 var ovStep = 1;
 var ovLoop;
 var playing = false;
@@ -72,13 +75,34 @@ class Jog extends React.Component {
             
             machineZEnabled: machineZEnabled,
             machineAEnabled: machineAEnabled,
+
+            gcodeBounds:null,
+            warnings:null,
         };
         this.bindings=[
             [['ctrl+x'],this.escapeX.bind(this)],
             [['alt+right',toolUseNumpad?'num6':undefined],this.jogRight.bind(this)],
             [['alt+left',toolUseNumpad?'num4':undefined],this.jogLeft.bind(this)],
             [['alt+up',toolUseNumpad?'num8':undefined],this.jogUp.bind(this)],
-            [['alt+down',toolUseNumpad?'num2':undefined],this.jogDown.bind(this)]
+            [['alt+down',toolUseNumpad?'num2':undefined],this.jogDown.bind(this)],
+
+            //change step size
+            [['ctrl+alt+1'],(function(){this.changeStepsize(0.1)}).bind(this)],
+            [['ctrl+alt+2'],(function(){this.changeStepsize(1)}).bind(this)],
+            [['ctrl+alt+3'],(function(){this.changeStepsize(10)}).bind(this)],
+            [['ctrl+alt+4'],(function(){this.changeStepsize(100)}).bind(this)],
+            //home all/XYZ
+            [['ctrl+alt+h'],this.homeAll.bind(this)],
+            [['ctrl+alt+x'],(function(){this.home('x')}).bind(this)],
+            [['ctrl+alt+y'],(function(){this.home('y')}).bind(this)],
+            [['ctrl+alt+z'],(function(){this.home('z')}).bind(this)],
+            [['ctrl+alt+c'],this.checkSize.bind(this)],
+            //set zero XYZ
+            [['ctrl+alt+shift+x'],(function(){this.setZero('x')}).bind(this)],
+            [['ctrl+alt+shift+y'],(function(){this.setZero('y')}).bind(this)],
+            [['ctrl+alt+shift+z'],(function(){this.setZero('z')}).bind(this)],
+            //run job
+            [['ctrl+alt+shift+r'],this.runJob.bind(this)],
         ]
         if (machineZEnabled){
             this.bindings=[
@@ -99,6 +123,8 @@ class Jog extends React.Component {
 
     componentDidMount()
     {
+        this.checkGcodeBounds(this.props.gcode);
+
         bindKeys(this.bindings);
 
         if (this.props.settings.toolUseGamepad) {
@@ -314,50 +340,61 @@ class Jog extends React.Component {
     }
 
     checkSize() {
-        console.log('checkSize');
+
         let units = this.props.settings.toolFeedUnits;
         let feedrate, mult = 1;
         if (units == 'mm/s') mult = 60;
         feedrate = jQuery('#jogfeedxy').val() * mult;
-
-        let gcode = this.props.gcode;
         
-        //let linemoves = gcode.split(/g[13]/i);
-        
-        let xArray = gcode.split(/x/i);
-        //alert(xArray.toString());
-        let xMin = 0;
-        let xMax = 0;
-        for (let i = 0; i < xArray.length; i++) {
-            if (parseFloat(xArray[i]) < xMin) {
-                xMin = parseFloat(xArray[i]);
-            }
-            if (parseFloat(xArray[i]) > xMax) {
-                xMax = parseFloat(xArray[i]);
-            }
-        }
-        let yArray = gcode.split(/y/i);
-        let yMin = 0;
-        let yMax = 0;
-        for (let i = 0; i < yArray.length; i++) {
-            if (parseFloat(yArray[i]) < yMin) {
-                yMin = parseFloat(yArray[i]);
-            }
-            if (parseFloat(yArray[i]) > yMax) {
-                yMax = parseFloat(yArray[i]);
-            }
-        }
+        let bounds=this.getGcodeBounds(this.props.gcode)
         let power = this.props.settings.gcodeCheckSizePower / 100 * this.props.settings.gcodeSMaxValue;
         let moves = `
             G90\n
-            G0 X` + xMin + ` Y` + yMin + ` F` + feedrate + `\n
+            G0 X` + bounds.xMin + ` Y` + bounds.yMin + ` F` + feedrate + `\n
             G1 F` + feedrate + ` S` + power + `\n
-            G1 X` + xMax + ` Y` + yMin + `\n
-            G1 X` + xMax + ` Y` + yMax + `\n
-            G1 X` + xMin + ` Y` + yMax + `\n
-            G1 X` + xMin + ` Y` + yMin + `\n
+            G1 X` + bounds.xMax + ` Y` + bounds.yMin + `\n
+            G1 X` + bounds.xMax + ` Y` + bounds.yMax + `\n
+            G1 X` + bounds.xMin + ` Y` + bounds.yMax + `\n
+            G1 X` + bounds.xMin + ` Y` + bounds.yMin + `\n
             G90\n`;
-        runCommand(moves);
+
+        console.warn(moves)
+        runCommand(moves)
+        
+    }
+
+    componentWillReceiveProps(props)
+    {
+        this.checkGcodeBounds(props.gcode);
+    }
+
+    getGcodeBounds(gcode,decimals=3) {
+            let yMin=Number.MIN_VALUE, yMax=Number.MAX_VALUE, xMin=Number.MIN_VALUE, xMax=Number.MAX_VALUE;
+            let parsed=chunk(parseGcode(gcode),9);
+                parsed.forEach(([g,x,y])=>{
+                    if (g && (x || y)){
+                        yMin=parseFloat(Math.max(yMin, y)).toFixed(decimals)
+                        xMin=parseFloat(Math.max(xMin, x)).toFixed(decimals)
+                        yMax=parseFloat(Math.min(yMax, y)).toFixed(decimals)
+                        xMax=parseFloat(Math.min(xMax, x)).toFixed(decimals)
+                    }
+                }) 
+
+            let bounds={xMin: Math.min(xMin,xMax), xMax: Math.max(xMin,xMax), yMin:Math.min(yMin,yMax) , yMax:Math.max(yMin,yMax)}
+                
+            return bounds
+
+    }
+
+    checkGcodeBounds(gcode){
+        let bounds=this.getGcodeBounds(gcode)
+        let {settings} = this.props
+        if (bounds && (
+            (bounds.xMax >settings.machineWidth) || (bounds.xMin < 0) ||
+            (bounds.yMax > settings.machineHeight) || (bounds.yMin < 0))) {
+                CommandHistory.warn("Warning: Gcode out of machine bounds, can lead to running work halt")
+                this.setState({'warnings':"Warning: Gcode out of machine bounds, can lead to running work halt"});
+            }
     }
 
     laserTest() {
@@ -628,7 +665,7 @@ class Jog extends React.Component {
                                       </button>
                                   </div>
                                   <div className="btn-group">
-                                      <button type='button' id="playBtn" className="btn btn-ctl btn-default" onClick={(e) => { this.runJob(e) }}>
+                                      <button type='button' id="playBtn" className={(this.state.warnings)? "btn btn-ctl btn-warning":"btn btn-ctl btn-default"} onClick={(e) => { this.runJob(e) }} title={this.state.warnings}>
                                           <span className="fa-stack fa-1x">
                                               <i id="playicon" className="fa fa-play fa-stack-1x"></i>
                                               <strong className="fa-stack-1x icon-top-text">run</strong>
