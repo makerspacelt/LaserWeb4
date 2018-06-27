@@ -263,6 +263,12 @@ class FloatingControls extends React.Component {
         this.setMaxX = v => {
             this.props.dispatch(transform2dSelectedDocuments([1, 0, 0, 1, v - this.bounds.x2, 0]));
         }
+        this.setZeroX = dir => {
+            var x = -this.bounds.x1;
+            if (dir)
+                x -= this.bounds.x2 - this.bounds.x1;
+            this.props.dispatch(transform2dSelectedDocuments([1, 0, 0, 1, x, 0]));
+        }
         this.setSizeX = v => {
             if (v > 0 && this.bounds.x2 - this.bounds.x1 > 0) {
                 let s = v / (this.bounds.x2 - this.bounds.x1);
@@ -281,6 +287,12 @@ class FloatingControls extends React.Component {
         this.setMaxY = v => {
             this.props.dispatch(transform2dSelectedDocuments([1, 0, 0, 1, 0, v - this.bounds.y2]));
         }
+        this.setZeroY = dir => {
+            var y = -this.bounds.y1;
+            if (dir)
+                y -= this.bounds.y2 - this.bounds.y1;
+            this.props.dispatch(transform2dSelectedDocuments([1, 0, 0, 1, 0, y]));
+        }
         this.setSizeY = v => {
             if (v > 0 && this.bounds.y2 - this.bounds.y1 > 0) {
                 let s = v / (this.bounds.y2 - this.bounds.y1);
@@ -290,9 +302,22 @@ class FloatingControls extends React.Component {
                     this.scale(1, s);
             }
         }
+        this.setCenterXY = v => {
+            let x = -this.bounds.x1;
+            let y = -this.bounds.y1;
+            let cx = (this.bounds.x2 - this.bounds.x1) / 2;
+            let cy = (this.bounds.y2 - this.bounds.y1) / 2;
+            this.props.dispatch(transform2dSelectedDocuments([1, 0, 0, 1, x - cx, y - cy]));
 
+        }
+        this.flipLeftRight = v => {
+            this.scale(-1, 1)
+        }
+        this.flipTopBorrom = v => {
+            this.scale(1, -1)
+        }
         this.toolOptimize = (doc, scale, anchor = 'C') => {
-            if (!scale) scale = 25.4 / this.props.settings.dpiBitmap;
+            if (!scale) scale = 2540 / (this.props.settings.dpiBitmap * 100);
             if (doc.originalPixels) {
                 let targetwidth = doc.originalPixels[0] * scale;
                 let targetheight = doc.originalPixels[1] * scale;
@@ -333,7 +358,7 @@ class FloatingControls extends React.Component {
                 if (doc.type == 'image' && doc.originalPixels) {
                     tools = <tfoot>
                         <tr>
-                            <td><Icon name="gear" /></td><td colSpan="6" >
+                            <td><Icon name="gear" /></td><td colSpan="7" >
                                 <ButtonGroup>
                                     <Button bsSize="xs" bsStyle="warning" onClick={(e) => this.toolOptimize(doc, this.props.settings.machineBeamDiameter, this.props.settings.toolImagePosition)}><Icon name="picture-o" /> Raster Opt.</Button>
                                     <Button bsSize="xs" bsStyle="danger" onClick={(e) => this.toolOptimize(doc, null, this.props.settings.toolImagePosition)}><Icon name="undo" /></Button>
@@ -399,6 +424,25 @@ class FloatingControls extends React.Component {
                                 <td>Size</td>
                                 <td></td>
                                 <td>Rot</td>
+                                <td rowSpan={3} className="origin-controls">
+                                    <table>
+                                    <tr>
+                                    <td><button className="btn btn-xs" onClick={ e => { this.setZeroX(true); this.setZeroY(false); } } title="Align northwest of origin">&#x2198;</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => this.setZeroY(false) } title="Align north of origin">&#x2193;</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => { this.setZeroX(false); this.setZeroY(false); } } title="Align northeast of origin">&#x2199;</button></td>
+                                    </tr>
+                                    <tr>
+                                    <td><button className="btn btn-xs" onClick={ e => this.setZeroX(true) } title="Align west of origin">&#x2192;</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => this.setCenterXY() } title="Center on origin">+</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => this.setZeroX(false) } title="Align east of origin">&#x2190;</button></td>
+                                    </tr>
+                                    <tr>
+                                    <td><button className="btn btn-xs" onClick={ e => { this.setZeroX(true); this.setZeroY(true); } } title="Align southwest of origin">&#x2197;</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => this.setZeroY(true) } title="Align south of origin">&#x2191;</button></td>
+                                    <td><button className="btn btn-xs" onClick={ e => { this.setZeroX(false); this.setZeroY(true); } } title="Align southeast of origin">&#x2196;</button></td>
+                                    </tr>
+                                    </table>
+                                </td>
                             </tr>
                             <tr>
                                 <td><span className="label label-danger">X</span></td>
@@ -410,10 +454,15 @@ class FloatingControls extends React.Component {
                                     &#x2511;<br /><input type="checkbox" checked={this.state.linkScale} onChange={this.linkScaleChanged} tabIndex="10" /><br />&#x2519;
                                 </td>
                                 <td rowSpan={2}><Input value={round(this.state.degrees)} onChangeValue={this.setDegrees} type="number" step="any" tabIndex="10" /><br />
-                                    <ButtonToolbar>
-                                        <Button bsSize="xsmall" onClick={e => this.rotate(e, false)} bsStyle="info"><Icon name="rotate-left" /></Button>
-                                        <Button bsSize="xsmall" onClick={e => this.rotate(e, true)} bsStyle="info"><Icon name="rotate-right" /></Button>
-                                    </ButtonToolbar>
+                                    <ButtonGroup>
+                                        <Button bsSize="xsmall" onClick={e => this.rotate(e, false)} bsStyle="info"><Icon fw name="rotate-left"  /></Button>
+                                        <Button bsSize="xsmall" onClick={e => this.rotate(e, true )} bsStyle="info"><Icon fw name="rotate-right" /></Button>
+                                    </ButtonGroup>
+                                    <br />
+                                    <ButtonGroup>
+                                        <Button bsSize="xsmall" onClick={e => this.flipTopBorrom()} bsStyle="info"><Icon fw name="arrows-v" /></Button>
+                                        <Button bsSize="xsmall" onClick={e => this.flipLeftRight()} bsStyle="info"><Icon fw name="arrows-h" /></Button>
+                                    </ButtonGroup>
                                 </td>
                             </tr>
                             <tr>
@@ -746,8 +795,8 @@ class WorkspaceContent extends React.Component {
         this.grid.draw(this.drawCommands, {
             perspective: this.camera.perspective, view: this.camera.view,
             width: this.props.settings.toolGridWidth, height: this.props.settings.toolGridHeight,
-            minor: this.props.settings.toolGridMinorSpacing || 0.1,
-            major: this.props.settings.toolGridMajorSpacing || 1,
+            minor: Math.max(this.props.settings.toolGridMinorSpacing,0.1),
+            major: Math.max(this.props.settings.toolGridMajorSpacing,1),
         });
         if (this.props.settings.showMachine)
             this.machineBounds.draw(this.drawCommands, {
@@ -884,8 +933,8 @@ class WorkspaceContent extends React.Component {
         this.grid.draw(this.drawCommands, {
             perspective: this.camera.perspective, view: this.camera.view,
             width: this.props.settings.toolGridWidth, height: this.props.settings.toolGridHeight,
-            minor: this.props.settings.toolGridMinorSpacing,
-            major: this.props.settings.toolGridMajorSpacing,
+            minor: Math.max(this.props.settings.toolGridMinorSpacing,0.1),
+            major: Math.max(this.props.settings.toolGridMajorSpacing,1),
         });
         if (this.props.settings.showMachine)
             this.machineBounds.draw(this.drawCommands, {

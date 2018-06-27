@@ -17,6 +17,7 @@ export const SETTINGS_VALIDATION_RULES = {
     gcodeToolTestPower: 'required|numeric|min:0|max:100',
     gcodeToolTestDuration: 'required|numeric|min:0',
     gcodeConcurrency: 'required|numeric|min:1|max:5',
+    gcodeCurvePrecision: 'required|numeric|min:0.1|max:2',
 
     machineZEnabled: 'boolean',
     machineBlowerEnabled: 'boolean',
@@ -87,6 +88,7 @@ export const SETTINGS_INITIALSTATE = {
     pxPerInch: 25.4,
     forcePxPerInch: false,
     dpiBitmap: 300,
+    
 
     toolGridWidth: 1550,
     toolGridHeight: 550,
@@ -119,6 +121,7 @@ export const SETTINGS_INITIALSTATE = {
     gcodeStart: "%\r\nG21         ; Set units to mm\r\nG90         ; Absolute positioning\r\nG64P0.1Q0.02\r\nM4 S1000\r\nM68 E0 Q80\r\n",
     gcodeEnd: "M5          ; Switch tool offEnd\r\n%",
     gcodeHoming: "",
+    gcodeGenerator: "default",
     gcodeToolOn: "",
     gcodeToolOff: "",
     gcodeLaserIntensity: 'S',
@@ -129,6 +132,7 @@ export const SETTINGS_INITIALSTATE = {
     gcodeToolTestPower: 0,
     gcodeToolTestDuration: 0,
     gcodeConcurrency: 2,
+    gcodeCurvePrecision: 0.1,
 
     comServerVersion: 'not connected',
     comServerIP: 'localhost:8000',
