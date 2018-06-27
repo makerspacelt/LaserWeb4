@@ -13,7 +13,7 @@ export const OPERATION_INITIALSTATE = {
     documents: [],
     tabDocuments: [],
     expanded: false,
-    type: 'Laser Cut',
+    type: 'Mill Cut',
     filterFillColor: null,
     filterStrokeColor: null,
     direction: 'Conventional',
